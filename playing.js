@@ -22,6 +22,10 @@ clearButton.type = "button";
 searchBar.appendChild(clearButton);
 clearButton.innerText = "Back to home page";
 
+clearButton.addEventListener("click", clearButtonOnClick);
+
+searchBar.addEventListener("keyup", displaySearchResults);
+
 searchBar.style.color = "white";
 searchBar.style.fontFamily = "arial";
 
@@ -114,7 +118,6 @@ async function renderTrendingMovies() {
   });
   carouselElement.insertAdjacentHTML("beforeend", html);
 }
-
 renderTrendingMovies();
 
 async function fetchRecommendedMovies(movie_id) {
@@ -132,7 +135,6 @@ async function fetchRecommendedMovies(movie_id) {
 async function renderRecommendedMovies() {
   let data = await fetchRecommendedMovies(634649);
   let movies = data.results;
-
   let html = "";
 
   movies.forEach((movie) => {
@@ -144,48 +146,51 @@ async function renderRecommendedMovies() {
   });
   recommendedElement.insertAdjacentHTML("beforeend", html);
 }
-
 renderRecommendedMovies();
 
-function searchForMovies(term) {
-  //let term = event.target.value;
-  console.log(term);
-  async function fetchAllMovies(term) {
-    try {
-      let response = await fetch(
-        `https://api.themoviedb.org/3/search/movie?query=${term}&api_key=fb55081276ff4308dc10d1c41ca8ec83&language=en-US&page=1&include_adult=false`
-      );
-      let data = await response.json();
-      return data;
-    } catch (error) {
-      console.log(error);
-    }
+async function fetchAllMovies(query) {
+  try {
+    let response = await fetch(
+      `https://api.themoviedb.org/3/search/movie?query=${query}&api_key=fb55081276ff4308dc10d1c41ca8ec83&language=en-US&page=1&include_adult=false`
+    );
+    let data = await response.json();
+    return data;
+  } catch (error) {
+    console.log(error);
   }
-  async function displaySearchResults() {
-    let data = await fetchAllMovies(term);
-    let movies = data.results;
+}
 
-    let html = "";
-
-    movies.forEach((movie) => {
+async function displaySearchResults(e) {
+  const query = e.target.value;
+  let data = await fetchAllMovies(query);
+  let movies = await data.results;
+  let html;
+  if (!query) return movies;
+  movies.filter((movie) => {
+    const movieTitle = movie.original_title.toLowerCase();
+    if (movieTitle.indexOf(query) != -1) {
       let htmlSegment = `<div class="movie" style="margin: 5px;">
-      <img src="https://image.tmdb.org/t/p/w200/${movie.poster_path}" style="border-radius: 5px; width: 100px; height: 150px" >
-      <h2>${movie.original_title}<h2>
-    </div>`;
+      <img src="https://image.tmdb.org/t/p/w200/${movie.poster_path}" style="border-radius: 5px; width: 100px; height: 150px">
+      <h2>${movieTitle}<h2>
+      </div>`;
       html += htmlSegment;
       carousel.style.visibility = "hidden";
       recommended.style.visibility = "hidden";
+      searchResults.style.visibility = "visible";
+      searchResults.insertAdjacentHTML("beforeend", html);
       searchResults.innerHTML = html;
-    });
-  }
-  displaySearchResults(term);
+      //const movieDiv = document.querySelector("movie");
+      console.log(typeof movieDiv);
+    }
+  });
 }
 
 function clearButtonOnClick() {
-  carousel.style.visibility = "";
-  recommended.style.visibility = "";
+  renderRecommendedMovies();
+  renderTrendingMovies();
+  input.form.reset();
+  carousel.style.visibility = "visible";
+  recommended.style.visibility = "visible";
+  searchResults.remove();
   searchResults.style.visibility = "hidden";
 }
-
-searchButton.addEventListener("click", () => searchForMovies("jaws"));
-clearButton.addEventListener("click", clearButtonOnClick());
